@@ -1,0 +1,9 @@
+.idea/
+bot.backup.tar.gz
+bot_before_platka.tar.xz
+config/
+registered.trigger
+ssl/
+q.html
+loc.php
+logs/
