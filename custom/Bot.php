@@ -966,9 +966,18 @@ class Bot
                     LEFT JOIN burse ON burse.id = cryptocurrency_info.burse_id WHERE all_cryptocurrency.code='{$currency}'"
                 );
 
-                $text = '1 ' . $all_currencies[0]['name'] . ':' . "\n\r";
+                // Если все курсы = 0, то будет сообщение, что нет информации по какой-то причине
+                $text = '';
                 foreach ($all_currencies as $currency) {
-                    $text .= '*' . $currency['burse_name'] . ':* ' . $currency['value_to_usd'] . " USD " . "\n\r";
+                    if ($currency['value_to_usd'] != 0) {
+                        $text .= '*' . $currency['burse_name'] . ':* ' . $currency['value_to_usd'] . " USD " . "\n\r";
+                    }
+                }
+
+                if ($text !== '') {
+                    $text = '1 ' . $all_currencies[0]['name'] . ':' . "\n\r" . $text;
+                } else {
+                    $text = 'Нет информации по этой паре валют.';
                 }
 
                 $keyboard = new InlineKeyboardMarkup( [] );
@@ -993,9 +1002,18 @@ class Bot
                     LEFT JOIN burse ON burse.id = cryptocurrency_info.burse_id WHERE all_cryptocurrency.code='{$currency}'"
                 );
 
-                $text = '1 ' . $all_currencies[0]['name'] . ':' . "\n\r";
+                // Если все курсы = 0, то будет сообщение, что нет информации по какой-то причине
+                $text = '';
                 foreach ($all_currencies as $currency) {
-                    $text .= '*' . $currency['burse_name'] . ':* ' . $currency['value_to_btc'] . " BTC" . "\n\r";
+                    if ($currency['value_to_btc'] != 0) {
+                        $text .= '*' . $currency['burse_name'] . ':* ' . $currency['value_to_btc'] . " BTC" . "\n\r";
+                    }
+                }
+
+                if ($text !== '') {
+                    $text = '1 ' . $all_currencies[0]['name'] . ':' . "\n\r" . $text;
+                } else {
+                    $text = 'Нет информации по этой паре валют.';
                 }
 
                 $keyboard = new InlineKeyboardMarkup( [] );
