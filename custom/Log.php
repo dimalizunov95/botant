@@ -41,4 +41,12 @@ class Log
     public function addLine($line_of_text) {
         $this->log_file .= "\n\r" . $line_of_text;
     }
+
+    public static function writeLog($logFilePath, string $textToLog) {
+        $logPath = ROOT . '/logs/' . $logFilePath;
+        file_put_contents(
+            $logPath,
+            date('G:i:s') . file_get_contents($logPath) . "\n\r" . $textToLog
+        );
+    }
 }

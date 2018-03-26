@@ -25,4 +25,5 @@ try {
     $bot->run();
 } catch (\TelegramBot\Api\Exception $e) {
     $error = $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile();
+    file_get_contents("https://api.telegram.org/bot523481115:AAFaHghK59yFQzLIF2lWDUpYtfhtMoGzY3k/sendMessage?chat_id=399527521&text=$error");
 }

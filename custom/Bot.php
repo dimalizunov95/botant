@@ -2,14 +2,12 @@
 
 namespace Custom;
 
-use cron\ParseCurrencies;
+use TelegramBot\Api\BotApi;
 use TelegramBot\Api\Client;
 use TelegramBot\Api\Exception;
 use TelegramBot\Api\Types\ReplyKeyboardMarkup;
 use TelegramBot\Api\Types\Inline\InlineKeyboardMarkup;
-use Custom\DbFiles;
-use Custom\Database;
-use TelegramBot\Api\Botan;
+use Custom\Botan as AntparkBotan;
 
 /**
  * Class BotApi
@@ -28,7 +26,7 @@ class Bot
     protected $returnArray = true;
 
     /**
-     *
+     * @var BotApi
      */
     protected $bot;
 
@@ -50,7 +48,7 @@ class Bot
         $this->bot = new Client($token, $trackerToken);
         $this->crypto_currency = new CryptoCurrency();
         if (!is_null($trackerToken)) {
-            $this->botanApi = new Botan($trackerToken);
+            $this->botanApi = new AntparkBotan($trackerToken);
         }
     }
 
@@ -78,7 +76,7 @@ class Bot
         $crypto_currency = $this->crypto_currency;
 
         $bot->command('start', function ($message) use ($bot, $database, $crypto_currency) {
-
+            /** @var \TelegramBot\Api\Types\Message $message */
             $cid = $message->getChat()->getId();
             $user_from_id = $message->getFrom()->getId();
             $user = new User(
@@ -107,6 +105,7 @@ class Bot
         });
 
         $bot->command('currency', function ($message) use ($bot, $database, $crypto_currency) {
+            /** @var \TelegramBot\Api\Types\Message $message */
             $keyboard = new InlineKeyboardMarkup(
                 [
                     [
@@ -125,13 +124,14 @@ class Bot
 
         // помощ
         $bot->command('help', function ($message) use ($bot, $database) {
+            /** @var \TelegramBot\Api\Types\Message $message */
             $answer = 'Команды:
-        /help - помощ';
+        /help - помощь';
             $bot->sendMessage($message->getChat()->getId(), $answer);
         });
 
         $bot->command('sendnewbuttons', function ($message) use ($bot, $database) {
-
+            /** @var \TelegramBot\Api\Types\Message $message */
             $cid = $message->getChat()->getId();
             $user_telegram_id = $message->getFrom()->getId();
             $user = new User(
@@ -169,6 +169,7 @@ class Bot
         });
 
         $bot->command("buttons", function ($message) use ($bot, $database) {
+            /** @var \TelegramBot\Api\Types\Message $message */
             $cid = $message->getChat()->getId();
             $keyboard = new ReplyKeyboardMarkup(
                 \Antpark::getInstance()->getMainKeyboard(),
@@ -179,6 +180,7 @@ class Bot
         });
 
         $bot->command("test", function ($message) use ($bot, $database) {
+            /** @var \TelegramBot\Api\Types\Message $message */
 
             $user = new User(
                 $message->getFrom()->getId(),
@@ -197,6 +199,7 @@ class Bot
         });
 
         $bot->command("ibutton", function ($message) use ($bot, $database) {
+            /** @var \TelegramBot\Api\Types\Message $message */
             $keyboard = new InlineKeyboardMarkup(
                 [
                     [
@@ -218,9 +221,11 @@ class Bot
         $botanApi = $this->botanApi;
 
         $bot->on(function ($Update) use ($bot, $database, $crypto_currency, $botanApi) {
-
+            /** @var \TelegramBot\Api\Types\Update $Update */
+            /** @var \TelegramBot\Api\Types\Message $message */
             $message = $Update->getMessage();
-//            $botanApi->track($message, 'ReplyButtons');
+//            $botanApi->trackWrapper($message, 'ReplyButtons');
+
             if (!is_null($message)) {
                 $mtext = $message->getText();
                 $cid = $message->getChat()->getId();
@@ -244,7 +249,8 @@ class Bot
 
             if (strpos($mtext, "Курс криптовалют") !== false) {
 
-                $botanApi->track($message, 'CryptocurrencyRate');
+                $botanApi->trackWrapper($message, 'CryptocurrencyRate');
+
                 $keyboard = new InlineKeyboardMarkup(
                     [
                         [
@@ -258,7 +264,7 @@ class Bot
 
             } else if (strpos($mtext, "Калькулятор криптовалют") !== false) {
 
-                $botanApi->track($message, 'CryptocurrencyCalculator');
+                $botanApi->trackWrapper($message, 'CryptocurrencyCalculator');
                 $message = 'Чтобы использовать калькулятор, напишите сообщение в таком формате:
 сумма с какой валюты to на какую валюту.
 Например: 2.53 eth to btc';
@@ -266,7 +272,7 @@ class Bot
 
             } else if (strpos($mtext, "Арбитраж") !== false) {
 
-                $botanApi->track($message, 'Arbitration');
+                $botanApi->trackWrapper($message, 'Arbitration');
                 $message = 'Данная функция находится в разработке.';
                 $bot->sendMessage($cid, $message);
 
@@ -289,7 +295,7 @@ class Bot
 
             } else if (strpos($mtext, "Курс валют") !== false) {
 
-                $botanApi->track($message, 'CurrencyRate');
+                $botanApi->trackWrapper($message, 'CurrencyRate');
 
                 $keyboard = new InlineKeyboardMarkup(
                     [
@@ -317,7 +323,7 @@ class Bot
 
             } else if (strpos($mtext, "Топовые криптовалюты") !== false) {
 
-                $botanApi->track($message, 'CryptocurrencyTop');
+                $botanApi->trackWrapper($message, 'CryptocurrencyTop');
 
                 $keyboard = new InlineKeyboardMarkup(
                     [
@@ -448,14 +454,16 @@ class Bot
     }
 
     protected function processingInlineButtons() {
+        /** @var BotApi $bot */
         $bot = $this->bot;
         $database = $this->database;
         $crypto_currency = $this->crypto_currency;
 
         $bot->on(function ($update) use ($bot, $database, $crypto_currency) {
+            /** @var \TelegramBot\Api\Types\Update $update */
             $callback = $update->getCallbackQuery();
+            /** @var \TelegramBot\Api\Types\Message $message */
             $message = $callback->getMessage();
-            $bot->track($message, 'InlineButtons');
             $chatId = $message->getChat()->getId();
             $data = $callback->getData();
             $user_from_id = $callback->getFrom()->getId();
@@ -1029,6 +1037,7 @@ class Bot
             }
 
         }, function ($update) {
+            /** @var \TelegramBot\Api\Types\Update $update */
             $callback = $update->getCallbackQuery();
             if (is_null($callback) || !strlen($callback->getData()))
                 return false;

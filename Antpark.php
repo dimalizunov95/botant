@@ -81,4 +81,20 @@ final class Antpark
             ]
         ];
     }
+
+    public function getMainKeyboardTest() {
+        return [
+            [
+                ["text" => "Курс криптовалют " . hex2bin('F09F93B2')],
+                ["text" => "Калькулятор криптовалют " . hex2bin('F09F939F')],
+            ],
+            [
+                ["text" => "Курс валют " . hex2bin('F09F92B5')],
+                ["text" => "Арбитраж " . hex2bin('F09F938A')],
+            ],
+            [
+                ["text" => "Топовые криптовалюты " . hex2bin('F09F9388')]
+            ]
+        ];
+    }
 }
