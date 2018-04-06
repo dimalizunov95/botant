@@ -204,4 +204,63 @@ class Parse
         ];
     }
 
+    public function getBoobsId() {
+        $link_obj = $this->arrayFromParsedJson("http://api.oboobs.ru/noise/1");
+        /*$link = file_get_contents("http://api.oboobs.ru/noise/1");
+        $link_obj = $this->jsonToArray($link);*/
+
+        preg_match("/\/(\d+)\.[a-zA-Z]{3,4}$/ ", $link_obj[0]['preview'], $preg_result);
+        $boobs_id = $preg_result[1];
+//        $pic = 'http://media.oboobs.ru/' . $link;
+        return $boobs_id;
+    }
+
+    public function getRidOfDislikedBoobs() {
+        $boobs_id = $this->getBoobsId();
+
+        $votes_to_image = $this->database->queryToSelect("
+            SELECT
+                COUNT(CASE WHEN liked_or_not = 1 AND boobs_image_id = '{$boobs_id}' THEN 1 END) AS likes,
+                COUNT(CASE WHEN liked_or_not = 0 AND boobs_image_id = '{$boobs_id}' THEN 1 END) AS dislikes
+            FROM boobs_likes
+        ");
+        $likes_to_image = $votes_to_image[0]['likes'];
+        $dislikes_to_image = $votes_to_image[0]['dislikes'];
+
+        $rates_difference = $dislikes_to_image - $likes_to_image;
+
+        if ($rates_difference >= 2) {
+            return false;
+        } else {
+            return [
+                'boobs_id' => $boobs_id,
+                'likes_to_image' => $likes_to_image,
+                'dislikes_to_image' => $dislikes_to_image,
+            ];
+        }
+    }
+
+    public function getLinkToBoobs($boobs_id) {
+        $pic = 'http://media.oboobs.ru/noise_preview/' . $boobs_id . '.jpg';
+        return $pic;
+    }
+
+    public function getBoobs() {
+        $boobs_array = $this->getRidOfDislikedBoobs();
+
+        if (!$boobs_array) {
+            return [
+                'error' => 'bad img'
+            ];
+        }
+
+        $pic_link = $this->getLinkToBoobs($boobs_array['boobs_id']);
+        return [
+            'boobs_id' => $boobs_array['boobs_id'],
+            'likes_to_image' => $boobs_array['likes_to_image'],
+            'dislikes_to_image' => $boobs_array['dislikes_to_image'],
+            'pic_link' => $pic_link
+        ];
+    }
+
 }

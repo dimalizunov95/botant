@@ -15,15 +15,14 @@ if(true){
     ini_set('display_errors', 1);
 }
 
-//$token = "471628587:AAF78910ArSMCFiCeBWdYALmiGkkoe_8YDw";
-$token = "523481115:AAFaHghK59yFQzLIF2lWDUpYtfhtMoGzY3k";
+$token = "529920509:AAEteMXxoTlkMvgbWYqkwFAlC9hfcShCvHM";
 //$token = "";
-$botan = 'ee17779d-4b22-4dcc-ac0a-95d3f4500fd6';
+//$botan = '';
 
 try {
-    $bot = new \Custom\Bot($token, $botan);
+    $bot = new \Custom\Bot($token);
     $bot->run();
 } catch (\TelegramBot\Api\Exception $e) {
     $error = $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile();
-    file_get_contents("https://api.telegram.org/bot523481115:AAFaHghK59yFQzLIF2lWDUpYtfhtMoGzY3k/sendMessage?chat_id=399527521&text=$error");
+    file_get_contents("https://api.telegram.org/bot$token/sendMessage?chat_id=399527521&text=$error");
 }

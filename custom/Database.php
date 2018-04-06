@@ -13,8 +13,15 @@ class Database
 
     function __construct() {
 
-        $paramsPath = ROOT . '/config/db_params.php';
-        $db_params = include($paramsPath);
+        /*$paramsPath = ROOT . '/config/db_params.php';
+        $db_params = include($paramsPath);*/
+
+        $db_params = [
+            "host" => "sql11.freesqldatabase.com",
+            "dbname" => "sql11209580",
+            "user" => "sql11209580",
+            "password" => "IJxCJ2y1CI",
+        ];
 
         try {
             $pdo = new \PDO(
