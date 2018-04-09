@@ -23,6 +23,12 @@ final class Antpark
         ]
     ];
 
+    private $botToken = "529920509:AAEteMXxoTlkMvgbWYqkwFAlC9hfcShCvHM";
+
+    private $creatorChatId = 399527521;
+
+    private $testCryptoChatId = -303854533;
+
     /**
      * gets the instance via lazy initialization (created on first usage)
      */
@@ -90,4 +96,17 @@ final class Antpark
             ]
         ];
     }
+
+    public function getToken() {
+        return $this->botToken;
+    }
+
+    public function getCreatorChatId() {
+        return $this->creatorChatId;
+    }
+
+    public function getTestCryptoChatId() {
+        return $this->testCryptoChatId;
+    }
+
 }

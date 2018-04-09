@@ -114,6 +114,22 @@ class Bot
             $bot->sendMessage($message->getChat()->getId(), "С какой валюты?", false, null, null, $keyboard);
         });
 
+        $bot->command('getchatid', function ($message) use ($bot, $database) {
+
+            /** @var \TelegramBot\Api\Types\Message $message */
+            $cid = $message->getChat()->getId();
+            $user_telegram_id = $message->getFrom()->getId();
+            $user = new User(
+                $user_telegram_id,
+                $message->getFrom()->getFirstName(),
+                $message->getFrom()->getLastName()
+            );
+
+            if ($user->isAdmin() || 'private' === $message->getChat()->getType()) {
+                $bot->sendMessage($cid, "Chat ID: " . $cid);
+            }
+        });
+
         // помощ
         $bot->command('help', function ($message) use ($bot, $database) {
             /** @var \TelegramBot\Api\Types\Message $message */
@@ -181,12 +197,9 @@ class Bot
             );
 
             if ($user->isAdmin()) {
-                $keyboard = new ReplyKeyboardMarkup(
-                    \Antpark::getInstance()->getMainKeyboardTest(),
-                    false, true
-                );
 
-                $bot->sendMessage($message->getChat()->getId(), 'test', false, null, null, $keyboard, true);
+                $message = $message->toJson();
+                $bot->sendMessage($message->getChat()->getId(), $message);
             }
         });
 
@@ -483,6 +496,57 @@ class Bot
                 );
             }
 
+            if (false !== strpos($data, "pushups_done")) {
+                $oldMessage = $message->getText();
+
+                $newMessage =  "Пора отжиматься!\n\r\n\rОтжались:\n\r";
+
+                // Get pushup event id
+                $pushupsEvent = $database->queryToSelect(
+                    "SELECT * FROM pushups_event WHERE message_id = '" . $message_id . "'"
+                );
+                $pushupsEvent = $pushupsEvent[0];
+
+                // Inserting that pushup was made by this user
+                $userInsertPushupsId = $database->queryToInsert(
+                    "INSERT IGNORE INTO pushups_done (user_id, pushup_event) 
+                          VALUES ('{$user->user_db_id}', '{$pushupsEvent['id']}')"
+                );
+
+                if (intval($userInsertPushupsId) === 0) {
+                    $bot->answerCallbackQuery($callback->getId());
+                    return;
+                }
+
+                // Names of people who made pushups
+                $pushupsDone = $database->queryToSelect(
+                    "SELECT all_users.first_name, all_users.last_name FROM pushups_done 
+                          LEFT JOIN all_users ON all_users.id = pushups_done.user_id
+                          WHERE pushup_event = '" . $pushupsEvent['id'] . "'"
+                );
+
+                foreach ($pushupsDone as $pushupUser) {
+                    $newMessage .= $pushupUser['first_name'] . ' ' . $pushupUser['last_name'] . "\n\r";
+                }
+
+                $keyboard = $this->createInlineKeyboard([[
+                        ['callback_data' => 'pushups_done', 'text' => 'Я отжался!'],
+                ]]);
+
+                //todo Нужно ли ещё раз отправлять клвиатуру
+                $bot->editMessageText(
+                    $chatId,
+                    $message_id,
+                    $newMessage,
+                    null,
+                    false,
+                    $keyboard
+                );
+//                $bot->sendMessage($chatId, json_encode($pushupsDone));
+
+                $bot->answerCallbackQuery($callback->getId());
+            }
+
 
         }, function ($update) {
             /** @var \TelegramBot\Api\Types\Update $update */
@@ -500,4 +564,34 @@ class Bot
         $this->processingReplyButtons();
         $this->bot->run();
     }
+
+    public function sendMsg(
+        $chatId,
+        $text,
+        $parseMode = false,
+        $disablePreview = null,
+        $replyToMessageId = null,
+        $keyboard = null
+    ) {
+        if (!is_null($keyboard)) {
+            $result = $this->bot->sendMessage($chatId, $text, $parseMode, $disablePreview, $replyToMessageId, $keyboard);
+        } else {
+            $result = $this->bot->sendMessage($chatId, $text);
+        }
+        return $result;
+    }
+
+    public function createKeyboard($keyboardMarkup) {
+        $keyboard = new ReplyKeyboardMarkup(
+            $keyboardMarkup,
+            false, true
+        );
+        return $keyboard;
+    }
+
+    public function createInlineKeyboard($keyboardMarkup) {
+        $keyboard = new InlineKeyboardMarkup($keyboardMarkup);
+        return $keyboard;
+    }
+
 }

@@ -15,7 +15,7 @@ if(true){
     ini_set('display_errors', 1);
 }
 
-$token = "529920509:AAEteMXxoTlkMvgbWYqkwFAlC9hfcShCvHM";
+$token = Antpark::getInstance()->getToken();
 //$token = "";
 //$botan = '';
 
@@ -23,6 +23,8 @@ try {
     $bot = new \Custom\Bot($token);
     $bot->run();
 } catch (\TelegramBot\Api\Exception $e) {
-    $error = $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile();
-    file_get_contents("https://api.telegram.org/bot$token/sendMessage?chat_id=399527521&text=$error");
+    if (false !== strpos($e->getMessage(), 'message is not modified')) {
+        $error = $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile();
+        file_get_contents("https://api.telegram.org/bot$token/sendMessage?chat_id=399527521&text=$error");
+    }
 }
