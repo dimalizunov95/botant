@@ -16,11 +16,17 @@ class Database
         /*$paramsPath = ROOT . '/config/db_params.php';
         $db_params = include($paramsPath);*/
 
-        $db_params = [
+        /*$db_params = [
             "host" => "sql11.freesqldatabase.com",
             "dbname" => "sql11209580",
             "user" => "sql11209580",
             "password" => "IJxCJ2y1CI",
+        ];*/
+        $db_params = [
+            "host" => "den1.mysql1.gear.host",
+            "dbname" => "botant",
+            "user" => "botant",
+            "password" => "Ws9caZ3~ziN!",
         ];
 
         try {

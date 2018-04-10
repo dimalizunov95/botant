@@ -217,6 +217,101 @@ class Bot
             $bot->sendMessage($message->getChat()->getId(), "тест", false, null, null, $keyboard);
         });
 
+        $bot->command("boobs", function ($message) use ($bot, $database) {
+
+            $from = $message->getFrom()->getId();
+
+            $user = $database->queryToSelect("
+                SELECT * FROM all_users WHERE telegram_user_id = '{$from}'
+            ");
+            $user_id = $user[0]['id'];
+
+            $q = $database->queryToSelect("
+                SELECT COUNT(*) FROM boobs_calls_statistics
+                WHERE user_id = '{$user_id}'
+            ");
+
+            $q = $q[0]['COUNT(*)'];
+            $text = $user[0]['first_name'] . ": " . $q;
+
+            $bot->sendMessage($message->getChat()->getId(), $text);
+        });
+
+        $bot->command("boobs_stat", function ($message) use ($bot, $database) {
+            $cid = $database->registerChat(
+                $message->getChat()->getId(),
+                $message->getChat()->getType()
+            );
+            $from = $message->getFrom()->getId();
+
+            $user = $database->queryToSelect("
+                SELECT * FROM all_users WHERE telegram_user_id = '{$from}'
+            ");
+            $user_id = $user[0]['id'];
+
+            $conflictLikes = $database->queryToSelect("
+                SELECT ((COUNT(*) - SUM(liked_or_not)) / SUM(liked_or_not)) as rate
+                    FROM  boobs_likes
+                    WHERE chat_id = '$cid'
+                    GROUP BY boobs_image_id
+                    HAVING (SUM(liked_or_not) / COUNT(*)) < 0.5
+                        AND SUM(liked_or_not) >= 1
+                        AND FIND_IN_SET($user_id, GROUP_CONCAT(user_id))
+                        AND SUBSTRING_INDEX(SUBSTRING_INDEX(GROUP_CONCAT(liked_or_not), ',', FIND_IN_SET($user_id, GROUP_CONCAT(user_id))), ',', -1) = 1
+            ");
+            $conflictLikesRate = 0;
+            foreach ($conflictLikes as $conflictLike) {
+                $conflictLikesRate += (float) $conflictLike['rate'];
+            }
+
+            $conflictDisLikes = $database->queryToSelect("
+                SELECT (SUM(liked_or_not) / (COUNT(*) - SUM(liked_or_not))) as rate
+                    FROM  boobs_likes
+                    WHERE chat_id = '$cid'
+                    GROUP BY boobs_image_id
+                    HAVING (SUM(liked_or_not) / COUNT(*)) > 0.5
+                        AND (COUNT(*) - SUM(liked_or_not)) >= 1
+                        AND FIND_IN_SET($user_id, GROUP_CONCAT(user_id))
+                        AND SUBSTRING_INDEX(SUBSTRING_INDEX(GROUP_CONCAT(liked_or_not), ',', FIND_IN_SET($user_id, GROUP_CONCAT(user_id))), ',', -1) = 0
+            ");
+            $conflictDisLikesRate = 0;
+            foreach ($conflictDisLikes as $conflictDisLike) {
+                $conflictDisLikesRate += (float) $conflictDisLike['rate'];
+            }
+
+            $text = $user[0]['first_name'] . ":
+            Лайк против большинства (баллов): " . (ceil($conflictLikesRate * 100) / 100) . "
+            Дизлайк против большинства (баллов): " . (ceil($conflictDisLikesRate * 100) / 100);
+
+            $bot->sendMessage($message->getChat()->getId(), $text);
+        });
+
+        $bot->command("pushupsstat", function ($message) use ($bot, $database) {
+            $totalPushupsNum = $database->queryToSelect("
+                SELECT COUNT(*) FROM pushups_event
+            ");
+            $totalPushupsPartByUser = $database->queryToSelect("
+                SELECT 
+                    all_users.first_name, 
+                    all_users.last_name, 
+                    COUNT(*) as pushups_done,
+                    (COUNT(*) / (SELECT COUNT(*) FROM pushups_event)) * 100 AS 'percentage_to_all_pushups'
+                FROM pushups_done 
+                LEFT JOIN all_users ON all_users.id=pushups_done.user_id
+                GROUP BY user_id
+            ");
+
+            $sendMessage = "Всего было {$totalPushupsNum[0]['COUNT(*)']} отжимашек.\n\r";
+            $sendMessage .= "Посещаемость отжимашек:\n\r";
+            foreach ($totalPushupsPartByUser as $userPushups) {
+                $sendMessage .= $userPushups['first_name'] . ' ';
+                $sendMessage .= $userPushups['last_name'] . ': ';
+                $sendMessage .= (int)$userPushups['percentage_to_all_pushups'] . "%\n\r";
+            }
+
+            $bot->sendMessage($message->getChat()->getId(), $sendMessage);
+        });
+
     }
 
     protected function processingReplyButtons() {
