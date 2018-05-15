@@ -287,6 +287,110 @@ class Bot
         });
 
         $bot->command("pushupsstat", function ($message) use ($bot, $database) {
+            $currMonthStart = strtotime( 'first day of ' . date( 'F Y'));
+
+            $totalPushupsNum = $database->queryToSelect("
+                SELECT COUNT(*) FROM pushups_event WHERE time>{$currMonthStart}
+            ");
+            $totalPushupsPartByUser = $database->queryToSelect("
+                SELECT 
+                    all_users.first_name, 
+                    all_users.last_name, 
+                    COUNT(*) as pushups_done,
+                    (COUNT(*) / (SELECT COUNT(*) FROM pushups_event WHERE time>{$currMonthStart})) * 100 AS 'percentage_to_all_pushups'
+                FROM pushups_done 
+                LEFT JOIN all_users ON all_users.id=pushups_done.user_id
+                LEFT JOIN pushups_event ON pushups_event.id=pushups_done.pushup_event
+                WHERE pushups_event.time>{$currMonthStart}
+                GROUP BY user_id
+                ORDER BY percentage_to_all_pushups DESC
+            ");
+
+            $sendMessage = 'Статистика за ' . \Antpark::getInstance()->getMonthName() . "\n\r\n\r";
+            $sendMessage .= "Всего было {$totalPushupsNum[0]['COUNT(*)']} отжимашек.\n\r\n\r";
+            $sendMessage .= "Посещаемость отжимашек:\n\r";
+            foreach ($totalPushupsPartByUser as $userPushups) {
+                $sendMessage .= $userPushups['first_name'] . ' ';
+                $sendMessage .= $userPushups['last_name'] . ': ';
+                $sendMessage .= (int)$userPushups['pushups_done'] . ' (';
+                $sendMessage .= (int)$userPushups['percentage_to_all_pushups'] . "%)\n\r";
+            }
+
+            $bot->sendMessage($message->getChat()->getId(), $sendMessage);
+        });
+
+        $bot->command("boobs", function ($message) use ($bot, $database) {
+
+            $from = $message->getFrom()->getId();
+
+            $user = $database->queryToSelect("
+                SELECT * FROM all_users WHERE telegram_user_id = '{$from}'
+            ");
+            $user_id = $user[0]['id'];
+
+            $q = $database->queryToSelect("
+                SELECT COUNT(*) FROM boobs_calls_statistics
+                WHERE user_id = '{$user_id}'
+            ");
+
+            $q = $q[0]['COUNT(*)'];
+            $text = $user[0]['first_name'] . ": " . $q;
+
+            $bot->sendMessage($message->getChat()->getId(), $text);
+        });
+
+        $bot->command("boobs_stat", function ($message) use ($bot, $database) {
+            $cid = $database->registerChat(
+                $message->getChat()->getId(),
+                $message->getChat()->getType()
+            );
+            $from = $message->getFrom()->getId();
+
+            $user = $database->queryToSelect("
+                SELECT * FROM all_users WHERE telegram_user_id = '{$from}'
+            ");
+            $user_id = $user[0]['id'];
+
+            $conflictLikes = $database->queryToSelect("
+                SELECT ((COUNT(*) - SUM(liked_or_not)) / SUM(liked_or_not)) as rate
+                    FROM  boobs_likes
+                    WHERE chat_id = '$cid'
+                    GROUP BY boobs_image_id
+                    HAVING (SUM(liked_or_not) / COUNT(*)) < 0.5
+                        AND SUM(liked_or_not) >= 1
+                        AND FIND_IN_SET($user_id, GROUP_CONCAT(user_id))
+                        AND SUBSTRING_INDEX(SUBSTRING_INDEX(GROUP_CONCAT(liked_or_not), ',', FIND_IN_SET($user_id, GROUP_CONCAT(user_id))), ',', -1) = 1
+            ");
+            $conflictLikesRate = 0;
+            foreach ($conflictLikes as $conflictLike) {
+                $conflictLikesRate += (float) $conflictLike['rate'];
+            }
+
+            $conflictDisLikes = $database->queryToSelect("
+                SELECT (SUM(liked_or_not) / (COUNT(*) - SUM(liked_or_not))) as rate
+                    FROM  boobs_likes
+                    WHERE chat_id = '$cid'
+                    GROUP BY boobs_image_id
+                    HAVING (SUM(liked_or_not) / COUNT(*)) > 0.5
+                        AND (COUNT(*) - SUM(liked_or_not)) >= 1
+                        AND FIND_IN_SET($user_id, GROUP_CONCAT(user_id))
+                        AND SUBSTRING_INDEX(SUBSTRING_INDEX(GROUP_CONCAT(liked_or_not), ',', FIND_IN_SET($user_id, GROUP_CONCAT(user_id))), ',', -1) = 0
+            ");
+            $conflictDisLikesRate = 0;
+            foreach ($conflictDisLikes as $conflictDisLike) {
+                $conflictDisLikesRate += (float) $conflictDisLike['rate'];
+            }
+
+            $text = $user[0]['first_name'] . ":
+            Лайк против большинства (баллов): " . (ceil($conflictLikesRate * 100) / 100) . "
+            Дизлайк против большинства (баллов): " . (ceil($conflictDisLikesRate * 100) / 100);
+
+            $bot->sendMessage($message->getChat()->getId(), $text);
+        });
+
+        $bot->command("pushupsstatall", function ($message) use ($bot, $database) {
+            $currMonthStart = strtotime( 'first day of ' . date( 'F Y'));
+
             $totalPushupsNum = $database->queryToSelect("
                 SELECT COUNT(*) FROM pushups_event
             ");
@@ -299,18 +403,23 @@ class Bot
                 FROM pushups_done 
                 LEFT JOIN all_users ON all_users.id=pushups_done.user_id
                 GROUP BY user_id
+                ORDER BY percentage_to_all_pushups DESC
             ");
 
-            $sendMessage = "Всего было {$totalPushupsNum[0]['COUNT(*)']} отжимашек.\n\r";
+            $sendMessage = "Статистика за всё время.\n\r\n\r";
+            $sendMessage .= "Всего было {$totalPushupsNum[0]['COUNT(*)']} отжимашек.\n\r\n\r";
             $sendMessage .= "Посещаемость отжимашек:\n\r";
             foreach ($totalPushupsPartByUser as $userPushups) {
                 $sendMessage .= $userPushups['first_name'] . ' ';
                 $sendMessage .= $userPushups['last_name'] . ': ';
-                $sendMessage .= (int)$userPushups['percentage_to_all_pushups'] . "%\n\r";
+                $sendMessage .= (int)$userPushups['pushups_done'] . ' (';
+                $sendMessage .= (int)$userPushups['percentage_to_all_pushups'] . "%)\n\r";
             }
 
             $bot->sendMessage($message->getChat()->getId(), $sendMessage);
         });
+
+
 
     }
 
@@ -592,7 +701,11 @@ class Bot
             }
 
             if (false !== strpos($data, "pushups_done")) {
-                $oldMessage = $message->getText();
+                $lastPushupsEvent = $database->queryToSelect(
+                    "SELECT * FROM pushups_event ORDER BY time DESC LIMIT 1"
+                );
+                $lastPushupsEvent = $lastPushupsEvent[0];
+
 
                 $newMessage =  "Пора отжиматься!\n\r\n\rОтжались:\n\r";
 
@@ -601,6 +714,12 @@ class Bot
                     "SELECT * FROM pushups_event WHERE message_id = '" . $message_id . "'"
                 );
                 $pushupsEvent = $pushupsEvent[0];
+
+                // If this is not the very last pushups event, you're not allowed to pushup
+                if ($lastPushupsEvent['time'] !== $pushupsEvent['time']) {
+                    $bot->answerCallbackQuery($callback->getId());
+                    return;
+                }
 
                 // Inserting that pushup was made by this user
                 $userInsertPushupsId = $database->queryToInsert(

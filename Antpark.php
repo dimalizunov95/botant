@@ -29,6 +29,21 @@ final class Antpark
 
     private $testCryptoChatId = -303854533;
 
+    private $months = [
+        1 => 'январь',
+        2 => 'февраль',
+        3 => 'март',
+        4 => 'апрель',
+        5 => 'май',
+        6 => 'июнь',
+        7 => 'июль',
+        8 => 'август',
+        9 => 'сентябрь',
+        10 => 'октябрь',
+        11 => 'ноябрь',
+        12 => 'декабрь',
+    ];
+
     /**
      * gets the instance via lazy initialization (created on first usage)
      */
@@ -107,6 +122,13 @@ final class Antpark
 
     public function getTestCryptoChatId() {
         return $this->testCryptoChatId;
+    }
+
+    public function getMonthName($monthNum = null) {
+        if (is_null($monthNum)) {
+            return $this->months[date('n')];
+        }
+        return $this->months[$monthNum];
     }
 
 }
