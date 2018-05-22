@@ -179,8 +179,14 @@ class Bot
         $bot->command("buttons", function ($message) use ($bot, $database) {
             /** @var \TelegramBot\Api\Types\Message $message */
             $cid = $message->getChat()->getId();
+
+            if ('private' === $message->getChat()->getType()) {
+                $keyboardToSend = \Antpark::getInstance()->getMainKeyboardForPrivateChat();
+            } else {
+                $keyboardToSend = \Antpark::getInstance()->getMainKeyboard();
+            }
             $keyboard = new ReplyKeyboardMarkup(
-                \Antpark::getInstance()->getMainKeyboard(),
+                $keyboardToSend,
                 false, true
             );
 
@@ -514,6 +520,26 @@ class Bot
 
                 $bot->sendMessage($cid, $message);
 
+            } else if (strpos($mtext, "Планировщик задач") !== false) {
+
+                if ('private' === $message->getChat()->getType()) {
+                    $inlineKeyboard = $this->createInlineKeyboard(
+                        [
+                            [
+                                ['callback_data' => 'scheduler_new_task', 'text' => 'Добавить новую задачу'],
+                                ['callback_data' => 'scheduler_tasks_list', 'text' => 'Просмотреть все задачи']
+                            ]
+                        ]
+                    );
+
+                    $this->sendMsg(
+                        $cid,
+                        'Планировщик задач:',
+                        $inlineKeyboard
+                    );
+                }
+
+
             } else {
                 //Обработка тупо всех остальных сообщений в чате
             }
@@ -618,11 +644,13 @@ class Bot
 
                 $bot->answerCallbackQuery($callback->getId());
 
-                $bot->editMessageReplyMarkup(
-                    $chatId,
-                    $message_id,
-                    $keyboard
-                );
+                try {
+                    $bot->editMessageReplyMarkup(
+                        $chatId,
+                        $message_id,
+                        $keyboard
+                    );
+                } catch (\Exception $e) {}
 
             }
 
@@ -693,11 +721,13 @@ class Bot
 
                 $bot->answerCallbackQuery($callback->getId());
 
-                $bot->editMessageReplyMarkup(
-                    $chatId,
-                    $message_id,
-                    $keyboard
-                );
+                try {
+                    $bot->editMessageReplyMarkup(
+                        $chatId,
+                        $message_id,
+                        $keyboard
+                    );
+                } catch (\Exception $e) {}
             }
 
             if (false !== strpos($data, "pushups_done")) {
@@ -761,6 +791,68 @@ class Bot
                 $bot->answerCallbackQuery($callback->getId());
             }
 
+            if (false !== strpos($data, "scheduler_new_task")) {
+                $message_id = $message->getMessageId();
+
+                $database->queryToInsert(
+                    "INSERT IGNORE INTO scheduler (user_id, chat_id, message_id) VALUES ('{$user->user_db_id}', '{$chat_db_id}', '{$message_id}')"
+                );
+                
+                $message = "Чтобы добавить новую задачу, в следующем сообщении напишите текст в формате:\n\r";
+                $message .= "Как часто отпарвлять сообщения; Во сколько начинать отправлять сообщение по Киеву; Во сколько закончить отправлять сообщение; Какое сообщение отправлять\n\r";
+                $message .= "Например:\n\r\n\r";
+                $message .= "1.5;9:30;17:30;Встань и пройдись\n\r\n\r";
+                $message .= "Это отправит сообщение 'Встань и пройдись' каждые полтора часа, начиная в 9:30, до 17:30 \n\r";
+
+
+                $bot->answerCallbackQuery($callback->getId());
+
+                try {
+                    $bot->editMessageText(
+                        $chatId,
+                        $message_id,
+                        $message
+                    );
+                } catch (\Exception $e) {}
+
+            }
+
+            if (false !== strpos($data, "scheduler_tasks_list")) {
+                $message_id = $message->getMessageId();
+
+                $allUserTasks = $database->queryToSelect(
+                    "SELECT id, message_text FROM `scheduler` WHERE user_id = '{$user->user_db_id}' AND chat_id = '{$chat_db_id}' AND periodicity IS NOT NULL"
+                );
+
+                $allTasksKeyboard = [];
+
+                foreach ($allUserTasks as $task) {
+                    $allTasksKeyboard[] = [
+                        ['callback_data' => 'scheduler_all_tasks_id_' . $task['id'], 'text' => $task['message_text']]
+                    ];
+                }
+
+                $message = 'Список всех задач';
+                $keyboard = $this->createInlineKeyboard([
+                    $allTasksKeyboard
+                ]);
+
+
+                $bot->answerCallbackQuery($callback->getId());
+
+                try {
+                    $bot->editMessageText(
+                        $chatId,
+                        $message_id,
+                        $message,
+                        null,
+                        false,
+                        $keyboard
+                    );
+                } catch (\Exception $e) {}
+
+            }
+
 
         }, function ($update) {
             /** @var \TelegramBot\Api\Types\Update $update */
@@ -782,10 +874,10 @@ class Bot
     public function sendMsg(
         $chatId,
         $text,
+        $keyboard = null,
         $parseMode = false,
         $disablePreview = null,
-        $replyToMessageId = null,
-        $keyboard = null
+        $replyToMessageId = null
     ) {
         if (!is_null($keyboard)) {
             $result = $this->bot->sendMessage($chatId, $text, $parseMode, $disablePreview, $replyToMessageId, $keyboard);

@@ -96,6 +96,18 @@ final class Antpark
         ];
     }
 
+    public function getMainKeyboardForPrivateChat() {
+        return [
+            [
+                ["text" => "Сиськи"],
+                ["text" => "Курс биткоина"],
+            ],
+            [
+                ["text" => "Планировщик задач"],
+            ],
+        ];
+    }
+
     public function getMainKeyboardTest() {
         return [
             [

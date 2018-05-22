@@ -22,9 +22,6 @@ $keyboard = $bot->createInlineKeyboard($keyboard);
 $result = $bot->sendMsg(
     Antpark::getInstance()->getTestCryptoChatId(),
     'Пора отжиматься!',
-    false,
-    null,
-    null,
     $keyboard
 );
 $currentTime = time();
