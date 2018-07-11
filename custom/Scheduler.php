@@ -96,7 +96,7 @@ class Scheduler
             $pushUpTime = $pushHour * 60 + $pushMinute;
 
             if (($pushUpTime + 2) >= $currentTime && ($pushUpTime - 2) <= $currentTime) {
-                $this->_sendPushupsMessage();
+                $this->sendPushupsMessage();
                 return true;
             }
         }
@@ -136,7 +136,7 @@ class Scheduler
         return true;
     }
 
-    private function _sendPushupsMessage()
+    public function sendPushupsMessage()
     {
         $bot = new \Custom\Bot(\Antpark::getInstance()->getToken());
 
@@ -149,7 +149,7 @@ class Scheduler
 
         $result = $bot->sendMsg(
             \Antpark::getInstance()->getTestCryptoChatId(),
-            'Пора отжиматься!',
+            'Пора разминаться!',
             $keyboard
         );
         $currentTime = time();

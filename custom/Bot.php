@@ -209,6 +209,22 @@ class Bot
             }
         });
 
+        $bot->command("sendpushups", function ($message) use ($bot, $database) {
+            /** @var \TelegramBot\Api\Types\Message $message */
+
+            $user = new User(
+                $message->getFrom()->getId(),
+                $message->getFrom()->getFirstName(),
+                $message->getFrom()->getLastName()
+            );
+
+            if ($user->isAdmin()) {
+
+                $scheduler = new Scheduler();
+                $scheduler->sendPushupsMessage();
+            }
+        });
+
         $bot->command("ibutton", function ($message) use ($bot, $database) {
             /** @var \TelegramBot\Api\Types\Message $message */
             $keyboard = new InlineKeyboardMarkup(
@@ -313,8 +329,8 @@ class Bot
             ");
 
             $sendMessage = 'Статистика за ' . \Antpark::getInstance()->getMonthName() . "\n\r\n\r";
-            $sendMessage .= "Всего было {$totalPushupsNum[0]['COUNT(*)']} отжимашек.\n\r\n\r";
-            $sendMessage .= "Посещаемость отжимашек:\n\r";
+            $sendMessage .= "Всего было {$totalPushupsNum[0]['COUNT(*)']} разминашек.\n\r\n\r";
+            $sendMessage .= "Посещаемость разминашек:\n\r";
             foreach ($totalPushupsPartByUser as $userPushups) {
                 $sendMessage .= $userPushups['first_name'] . ' ';
                 $sendMessage .= $userPushups['last_name'] . ': ';
@@ -413,8 +429,8 @@ class Bot
             ");
 
             $sendMessage = "Статистика за всё время.\n\r\n\r";
-            $sendMessage .= "Всего было {$totalPushupsNum[0]['COUNT(*)']} отжимашек.\n\r\n\r";
-            $sendMessage .= "Посещаемость отжимашек:\n\r";
+            $sendMessage .= "Всего было {$totalPushupsNum[0]['COUNT(*)']} разминашек.\n\r\n\r";
+            $sendMessage .= "Посещаемость разминашек:\n\r";
             foreach ($totalPushupsPartByUser as $userPushups) {
                 $sendMessage .= $userPushups['first_name'] . ' ';
                 $sendMessage .= $userPushups['last_name'] . ': ';
@@ -807,7 +823,7 @@ class Bot
                 $lastPushupsEvent = $lastPushupsEvent[0];
 
 
-                $newMessage =  "Пора отжиматься!\n\r\n\rОтжались:\n\r";
+                $newMessage =  "Пора разминаться!\n\r\n\rРазмялись:\n\r";
 
                 // Get pushup event id
                 $pushupsEvent = $database->queryToSelect(
@@ -844,7 +860,7 @@ class Bot
                 }
 
                 $keyboard = $this->createInlineKeyboard([[
-                        ['callback_data' => 'pushups_done', 'text' => 'Я отжался!'],
+                        ['callback_data' => 'pushups_done', 'text' => 'Я размялся!'],
                 ]]);
 
                 //todo Нужно ли ещё раз отправлять клвиатуру
