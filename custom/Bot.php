@@ -542,6 +542,76 @@ class Bot
 
             } else {
                 //Обработка тупо всех остальных сообщений в чате
+
+                // Обработка данных для вставки сообщения для планировщика задач
+
+                // 0 - periodicity
+                // 1 - time start
+                // 2 - time end
+                // 3 - message
+                if ('private' === $message->getChat()->getType()) {
+                    $messageParts = explode(';', $mtext);
+
+                    if (
+                        array_key_exists(0, $messageParts)
+                        && array_key_exists(1, $messageParts)
+                        && array_key_exists(2, $messageParts)
+                        && array_key_exists(3, $messageParts)
+                        && !array_key_exists(4, $messageParts)
+                    ) {
+                        $messageParts[0] = intval($messageParts[0]);
+                        $messageParts[1] = strval($messageParts[1]);
+                        $messageParts[2] = strval($messageParts[2]);
+                        $messageParts[3] = strval($messageParts[3]);
+
+                        if (
+                            0 === $messageParts[0]
+                            || '' === strval(strtotime($messageParts[1]))
+                            || '' === strval(strtotime($messageParts[2]))
+                            || '' === $messageParts[3]
+                        ) {
+                            $this->sendMsg(
+                                $cid,
+                                'Неправильно сформировано сообщение. Придётся повторить всё заново.'
+                            );
+                            return false;
+                        }
+
+                        $schedulerId = $database->queryToSelect(
+                            "SELECT id FROM scheduler 
+                              WHERE user_id = '{$user->user_db_id}' AND chat_id = '{$chat_db_id}' 
+                              AND message_text IS NULL ORDER BY insert_time DESC LIMIT 1"
+                        );
+
+                        if (
+                            !array_key_exists(0, $schedulerId)
+                            || !array_key_exists('id', $schedulerId[0])
+                            || 0 === intval($schedulerId[0]['id'])
+                        ) {
+                            $this->sendMsg(
+                                $cid,
+                                'Ошибка.'
+                            );
+                            return false;
+                        }
+
+                        $database->queryToInsert("
+                        UPDATE scheduler 
+                        SET periodicity = {$messageParts[0]}, send_from = '{$messageParts[1]}',
+                        send_to = '{$messageParts[2]}', message_text = '{$messageParts[3]}'
+                        WHERE id = '{$schedulerId[0]['id']}'
+                    ");
+                        $this->sendMsg(
+                            $cid,
+                            'Задача сохранена.'
+                        );
+                    } else {
+                        $database->queryToInsert(
+                            "DELETE FROM scheduler WHERE user_id = 1 AND chat_id = 3 AND message_text IS NULL"
+                        );
+                    }
+                }
+
             }
 
         }, function ($message) {
@@ -794,15 +864,32 @@ class Bot
             if (false !== strpos($data, "scheduler_new_task")) {
                 $message_id = $message->getMessageId();
 
+                $userTasks = $database->queryToSelect("
+                    SELECT COUNT(*) as user_tasks FROM scheduler WHERE user_id = '{$user->user_db_id}'
+                ");
+
+                if (5 <= $userTasks[0]['user_tasks']) {
+                    try {
+                        $bot->editMessageText(
+                            $chatId,
+                            $message_id,
+                            'Максимум 5 задач для одного пользователя.'
+                        );
+                    } catch (\Exception $e) {}
+                    return false;
+                }
+
                 $database->queryToInsert(
-                    "INSERT IGNORE INTO scheduler (user_id, chat_id, message_id) VALUES ('{$user->user_db_id}', '{$chat_db_id}', '{$message_id}')"
+                    "INSERT IGNORE INTO scheduler (user_id, chat_id, message_id, insert_time) 
+                          VALUES ('{$user->user_db_id}', '{$chat_db_id}', '{$message_id}', '{$current_time}')"
                 );
                 
                 $message = "Чтобы добавить новую задачу, в следующем сообщении напишите текст в формате:\n\r";
                 $message .= "Как часто отпарвлять сообщения; Во сколько начинать отправлять сообщение по Киеву; Во сколько закончить отправлять сообщение; Какое сообщение отправлять\n\r";
                 $message .= "Например:\n\r\n\r";
-                $message .= "1.5;9:30;17:30;Встань и пройдись\n\r\n\r";
-                $message .= "Это отправит сообщение 'Встань и пройдись' каждые полтора часа, начиная в 9:30, до 17:30 \n\r";
+                $message .= "90;9:30;17:30;Встань и пройдись\n\r\n\r";
+                $message .= "Это отправит сообщение 'Встань и пройдись' каждые 90 минут, начиная в 9:30, до 17:30 \n\r";
+                $message .= "Начало отправки + преидоичности должно быть кратно 10 минутам. Нельзя задать время раньше 7 утра и позже 23.";
 
 
                 $bot->answerCallbackQuery($callback->getId());
@@ -827,15 +914,13 @@ class Bot
                 $allTasksKeyboard = [];
 
                 foreach ($allUserTasks as $task) {
-                    $allTasksKeyboard[] = [
-                        ['callback_data' => 'scheduler_all_tasks_id_' . $task['id'], 'text' => $task['message_text']]
-                    ];
+                    $allTasksKeyboard[] = [['callback_data' => 'scheduler_all_tasks_id_' . $task['id'], 'text' => $task['message_text']]];
                 }
 
-                $message = 'Список всех задач';
-                $keyboard = $this->createInlineKeyboard([
+                $message = 'Список всех задач. Нажмите на задачу, чтобы посмотреть информацию о ней или удалить её.';
+                $keyboard = $this->createInlineKeyboard(
                     $allTasksKeyboard
-                ]);
+                );
 
 
                 $bot->answerCallbackQuery($callback->getId());
@@ -851,6 +936,51 @@ class Bot
                     );
                 } catch (\Exception $e) {}
 
+            }
+
+            if (false !== strpos($data, "scheduler_all_tasks_id_")) {
+                $taskId = str_replace('scheduler_all_tasks_id_', '', $data);
+                $taskInfo = $database->queryToSelect(
+                    "SELECT * FROM scheduler WHERE id = '{$taskId}'"
+                );
+                $taskInfo = $taskInfo[0];
+                $message = 'Периодичность: каждые' . $taskInfo['periodicity'] . " мин.\n\r";
+                $message .= 'Начало рассылки: ' . $taskInfo['send_from'] . "\n\r";
+                $message .= 'Окончание рассылки: ' . $taskInfo['send_to'] . "\n\r";
+                $message .= 'Сообщение: ' . $taskInfo['message_text'];
+
+                $keyboard = $this->createInlineKeyboard([[
+                    ['callback_data' => 'scheduler_delete_id_' . $taskId, 'text' => 'Удалить задачу'],
+                ]]);
+
+                try {
+                    $bot->editMessageText(
+                        $chatId,
+                        $message_id,
+                        $message,
+                        null,
+                        false,
+                        $keyboard
+                    );
+                } catch (\Exception $e) {}
+            }
+
+            if (false !== strpos($data, "scheduler_delete_id_")) {
+                $taskId = str_replace('scheduler_delete_id_', '', $data);
+
+                $database->queryToInsert(
+                    "DELETE FROM scheduler WHERE id = '{$taskId}'"
+                );
+
+                $message = 'Задача удалена.';
+
+                try {
+                    $bot->editMessageText(
+                        $chatId,
+                        $message_id,
+                        $message
+                    );
+                } catch (\Exception $e) {}
             }
 
 

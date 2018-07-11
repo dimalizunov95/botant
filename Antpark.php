@@ -7,6 +7,8 @@ final class Antpark
      */
     private static $instance;
 
+    public static $timeDiff = 3;
+
     private $dbConnection;
 
     private $mainKeyboard = [
@@ -141,6 +143,17 @@ final class Antpark
             return $this->months[date('n')];
         }
         return $this->months[$monthNum];
+    }
+
+    public function getAllPushupsTime()
+    {
+        return [
+            "10:00",
+            "11:30",
+            "15:00",
+            "16:30",
+//            "17:00",
+        ];
     }
 
 }

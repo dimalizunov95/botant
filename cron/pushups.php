@@ -10,23 +10,5 @@ require("../autoloader.php");
 $autoloader = new ClassAutoloader();
 require '../Antpark.php';
 
-$bot = new \Custom\Bot(Antpark::getInstance()->getToken());
-
-$keyboard = [
-    [
-        ['callback_data' => 'pushups_done', 'text' => 'Я отжался!'],
-    ]
-];
-$keyboard = $bot->createInlineKeyboard($keyboard);
-
-$result = $bot->sendMsg(
-    Antpark::getInstance()->getTestCryptoChatId(),
-    'Пора отжиматься!',
-    $keyboard
-);
-$currentTime = time();
-
-$database = Antpark::getInstance()->Db();
-$database->queryToInsert(
-    "INSERT INTO pushups_event (message_id, time) VALUES ('{$result->getMessageId()}', '{$currentTime}')"
-);
+$scheduler = new \Custom\Scheduler();
+$scheduler->sendMessagesToChats();
