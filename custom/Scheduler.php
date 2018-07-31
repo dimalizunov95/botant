@@ -142,7 +142,7 @@ class Scheduler
 
         $keyboard = [
             [
-                ['callback_data' => 'pushups_done', 'text' => 'Я отжался!'],
+                ['callback_data' => 'pushups_done', 'text' => 'Я размялся!'],
             ]
         ];
         $keyboard = $bot->createInlineKeyboard($keyboard);
