@@ -138,6 +138,15 @@ class Bot
             $bot->sendMessage($message->getChat()->getId(), $answer);
         });
 
+        $bot->command('topinmonth', function ($message) use ($bot, $database) {
+            $answer = 'Чтобы узнать топ по размишкам в месяце напишите сообщение вида: ' . "\n\r";
+            $answer .= 'top_in_month_a_b' . ", где\n\r";
+            $answer .= 'a - номер месяца, b - год.' . "\n\r";
+            $answer .= 'Например, topinmonth_5_2017.';
+
+            $bot->sendMessage($message->getChat()->getId(), $answer);
+        });
+
         $bot->command('sendnewbuttons', function ($message) use ($bot, $database) {
             /** @var \TelegramBot\Api\Types\Message $message */
             $cid = $message->getChat()->getId();
@@ -554,6 +563,54 @@ class Bot
                         $inlineKeyboard
                     );
                 }
+
+
+            } else if (strpos($mtext, "top_in_month") !== false) {
+
+                $msgParts = explode('_', $mtext);
+                $year = (int) $msgParts[count($msgParts) - 1];
+                $month = (int) $msgParts[count($msgParts) - 2];
+
+                if (!$year || !$month || strlen($year) !== 2 || strlen($year) !== 4) {
+                    $this->sendMsg(
+                        $cid,
+                        'Месяц или год указаны неверно.'
+                    );
+                }
+
+                $firstMinute = mktime(0, 0, 0, $month, 1, $year);
+                $days = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+                $lastMinute = mktime(23, 59, 0, $month, $days, $year);
+
+                $totalPushupsNum = $database->queryToSelect("
+                SELECT COUNT(*) FROM pushups_event WHERE time > {$firstMinute} AND time < {$lastMinute}
+                ")
+                ;
+                $totalPushupsPartByUser = $database->queryToSelect("
+                SELECT 
+                    all_users.first_name, 
+                    all_users.last_name, 
+                    COUNT(*) as pushups_done,
+                    (COUNT(*) / (SELECT COUNT(*) FROM pushups_event WHERE time>{$firstMinute} AND time<{$lastMinute})) * 100 AS 'percentage_to_all_pushups'
+                FROM pushups_done 
+                LEFT JOIN all_users ON all_users.id=pushups_done.user_id
+                LEFT JOIN pushups_event ON pushups_event.id=pushups_done.pushup_event
+                WHERE pushups_event.time > {$firstMinute} AND pushups_event.time < {$lastMinute}
+                GROUP BY user_id
+                ORDER BY percentage_to_all_pushups DESC
+            ");
+
+                $sendMessage = 'Статистика за ' . \Antpark::getInstance()->getMonthName($month) . "\n\r\n\r";
+                $sendMessage .= "Всего было {$totalPushupsNum[0]['COUNT(*)']} разминашек.\n\r\n\r";
+                $sendMessage .= "Посещаемость разминашек:\n\r";
+                foreach ($totalPushupsPartByUser as $userPushups) {
+                    $sendMessage .= $userPushups['first_name'] . ' ';
+                    $sendMessage .= $userPushups['last_name'] . ': ';
+                    $sendMessage .= (int)$userPushups['pushups_done'] . ' (';
+                    $sendMessage .= (int)$userPushups['percentage_to_all_pushups'] . "%)\n\r";
+                }
+
+                $bot->sendMessage($message->getChat()->getId(), $sendMessage);
 
 
             } else {

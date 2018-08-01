@@ -145,6 +145,36 @@ final class Antpark
         return $this->months[$monthNum];
     }
 
+    public function getAllMonthsKeyboard($callbackPrefix)
+    {
+        return [
+            [
+                ['callback_data' => $callbackPrefix . '_1', 'text' => 'Январь'],
+                ['callback_data' => $callbackPrefix . '_2', 'text' => 'Февраль']
+            ],
+            [
+                ['callback_data' => $callbackPrefix . '_3', 'text' => 'Март'],
+                ['callback_data' => $callbackPrefix . '_4', 'text' => 'Апрель']
+            ],
+            [
+                ['callback_data' => $callbackPrefix . '_5', 'text' => 'Май'],
+                ['callback_data' => $callbackPrefix . '_6', 'text' => 'Июнь']
+            ],
+            [
+                ['callback_data' => $callbackPrefix . '_7', 'text' => 'Июль'],
+                ['callback_data' => $callbackPrefix . '_8', 'text' => 'Август']
+            ],
+            [
+                ['callback_data' => $callbackPrefix . '_9', 'text' => 'Сентябрь'],
+                ['callback_data' => $callbackPrefix . '_10', 'text' => 'Октябрь']
+            ],
+            [
+                ['callback_data' => $callbackPrefix . '_11', 'text' => 'Ноябрь'],
+                ['callback_data' => $callbackPrefix . '_12', 'text' => 'Декабрь']
+            ],
+        ];
+    }
+
     public function getAllPushupsTime()
     {
         return [
