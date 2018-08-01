@@ -579,7 +579,7 @@ class Bot
                 }
 
                 $firstMinute = mktime(0, 0, 0, $month, 1, $year);
-                $days = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+                $days = date('t', mktime(0, 0, 0, $month, 1, $year));
                 $lastMinute = mktime(23, 59, 0, $month, $days, $year);
 
                 $totalPushupsNum = $database->queryToSelect("
