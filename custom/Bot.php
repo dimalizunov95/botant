@@ -571,7 +571,7 @@ class Bot
                 $year = (int) $msgParts[count($msgParts) - 1];
                 $month = (int) $msgParts[count($msgParts) - 2];
 
-                if (!$year || !$month || strlen($month) !== 2 || strlen($year) !== 4) {
+                if (!$year || !$month || strlen($month) !== 2 || strlen($month) !== 1 || strlen($year) !== 4) {
                     $this->sendMsg(
                         $cid,
                         'Месяц или год указаны неверно.'
