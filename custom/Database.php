@@ -107,10 +107,6 @@ class Database
 
     }
 
-    public function getAllCurrencies() {
-
-    }
-
     public function getAllValuesFromTableColumn($table_name, $column_name) {
         $result = $this->pdo->query("SELECT $column_name FROM $table_name");
 
