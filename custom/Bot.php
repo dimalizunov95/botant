@@ -142,7 +142,7 @@ class Bot
             $answer = 'Чтобы узнать топ по размишкам в месяце напишите сообщение вида: ' . "\n\r";
             $answer .= 'top_in_month_a_b' . ", где\n\r";
             $answer .= 'a - номер месяца, b - год.' . "\n\r";
-            $answer .= 'Например, topinmonth_5_2017.';
+            $answer .= 'Например, top_in_month_5_2017.';
 
             $bot->sendMessage($message->getChat()->getId(), $answer);
         });
