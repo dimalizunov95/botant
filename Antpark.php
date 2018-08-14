@@ -92,7 +92,7 @@ final class Antpark
     public function getMainKeyboard() {
         return [
             [
-                ["text" => "Сиськи"],
+                ["text" => "Мне повезёт?"],
                 ["text" => "Курс биткоина"],
             ],
         ];
@@ -101,7 +101,7 @@ final class Antpark
     public function getMainKeyboardForPrivateChat() {
         return [
             [
-                ["text" => "Сиськи"],
+                ["text" => "Мне повезёт?"],
                 ["text" => "Курс биткоина"],
             ],
             [

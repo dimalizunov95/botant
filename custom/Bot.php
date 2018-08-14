@@ -485,7 +485,7 @@ class Bot
 
             $current_time = time();
 
-            if (strpos($mtext, "Сиськи") !== false) {
+            if (strpos($mtext, "Мне повезёт?") !== false) {
 
                 $parsing = new Parse();
                 $boobs_arr = $parsing->getBoobs();
