@@ -178,10 +178,10 @@ final class Antpark
     public function getAllPushupsTime()
     {
         return [
-            "10:00",
-            "11:30",
-            "15:00",
-            "16:30",
+            "11:00",
+            "12:30",
+            "16:00",
+            "17:30",
 //            "17:00",
         ];
     }
