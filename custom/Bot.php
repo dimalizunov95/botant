@@ -530,10 +530,10 @@ class Bot
 
             } else if (strpos($mtext, "Курс биткоина") !== false) {
 
-                $json = file_get_contents('https://api.coinmarketcap.com/v1/ticker/?limit=1');
+                $json = file_get_contents('https://api.coindesk.com/v1/bpi/currentprice/BTC.json');
                 $json = json_decode($json, true);
-                $json = $json[0];
-                $price = number_format($json['price_usd'], 2, '.', ' ');
+                $json = str_replace(',', '', $json['bpi']['USD']['rate']);
+                $price = number_format($json, 2, '.', ' ');
                 $message = $price . ' $';
 
                 /*$db_row = $database->queryToSelect("SELECT * FROM currency LEFT JOIN currency_info "
